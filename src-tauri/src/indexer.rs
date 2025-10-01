@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tantivy::{schema::*, Index, doc};
 use std::{fs, io::Read};
-use log::{info, debug, warn};
+use log::info;
 
 use crate::scanner::FileMeta;
 
@@ -17,9 +17,12 @@ pub async fn build(files: Vec<FileMeta>, opts: IndexOptions) -> Result<()> {
     let mut schema_builder = Schema::builder();
 
     // 字段选项在 tantivy 0.22 中需使用 Options 显式设置
+    // 确保 path 可索引，以支持 delete_term/upsert
     let f_path = schema_builder.add_text_field(
         "path",
-        TextOptions::default().set_stored(),
+        TextOptions::default()
+            .set_stored()
+            .set_indexing_options(TextFieldIndexing::default()),
     );
     let f_name = schema_builder.add_text_field(
         "name",

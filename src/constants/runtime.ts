@@ -13,4 +13,9 @@ export const INVOKE_TIMEOUTS = {
   buildIndex: 300000,
   searchQuery: 60000,
   openLocation: 30000,
+  // 新增：合并管道启动与手动自动扫描触发的超时
+  pipelineStart: 600000, // 10 分钟，管道可能较长
+  startAutoScanNow: 60000,
+  // 诊断报告
+  diagnosticsReport: 45000,
 }

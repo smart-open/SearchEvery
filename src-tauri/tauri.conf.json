@@ -11,10 +11,15 @@
     "distDir": "../dist"
   },
   "tauri": {
+    "allowlist": {
+      "dialog": {
+        "open": true
+      }
+    },
     "windows": [
       {
         "title": "SearchEvery",
-        "width": 1200,
+        "width": 1400,
         "height": 800,
         "resizable": true
       }

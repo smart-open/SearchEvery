@@ -1,7 +1,9 @@
 export function formatTs(ts?: number): string {
+  // 后端传入的是 Unix 秒级时间戳，需要转换为毫秒
   if (ts == null || !Number.isFinite(ts)) return '-'
   try {
-    return new Date(ts).toLocaleString()
+    const ms = ts * 1000
+    return new Date(ms).toLocaleString()
   } catch {
     return '-'
   }
@@ -10,8 +12,9 @@ export function formatTs(ts?: number): string {
 export function formatRelativeTs(ts?: number): string {
   if (ts == null || !Number.isFinite(ts)) return '-'
   try {
+    const ms = ts * 1000
     const now = Date.now()
-    const diffMs = now - ts
+    const diffMs = now - ms
     if (diffMs < 0) return formatTs(ts)
     const sec = Math.floor(diffMs / 1000)
     if (sec < 5) return '刚刚'

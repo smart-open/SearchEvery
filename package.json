@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "icons:generate": "node scripts/generate-icons.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -15,9 +16,12 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.5.11",
+    "@types/node": "^18.19.129",
     "@types/react": "^18.2.62",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.3.1",
+    "png-to-ico": "^2.1.8",
+    "sharp": "^0.33.4",
     "typescript": "^5.5.4",
     "vite": "^5.4.8"
   }

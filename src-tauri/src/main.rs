@@ -5,11 +5,19 @@ mod indexer;
 mod search;
 mod dedup;
 mod config;
+mod pipeline_state;
+mod pipeline;
+mod diagnostics;
 
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use serde_json::json;
-use log::{info, warn, debug, error};
+use log::{info, warn, debug};
+use sysinfo::System;
+use crate::pipeline::{scan_and_index_pipeline_internal, scan_and_index_pipeline, start_auto_scan_now};
+use tauri::Manager; // bring Manager trait for emit_all
+use tantivy::{Index, Term};
+use std::fs;
 
 fn init_logging() {
     use std::path::PathBuf;
@@ -52,12 +60,12 @@ fn init_logging() {
     let env_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info"));
 
-    tracing_subscriber::registry()
+    let _ = tracing_subscriber::registry()
         .with(fmt::layer().with_ansi(true).with_target(false).with_writer(stdout_nb))
         .with(fmt::layer().with_ansi(false).with_target(true).with_writer(file_nb_current))
         .with(fmt::layer().with_ansi(false).with_target(true).with_writer(file_nb_daily))
         .with(env_filter)
-        .init();
+        .try_init();
 
     // 保存 guards，避免日志丢失
     let _ = FILE_GUARDS.set(vec![guard_current, guard_daily]);
@@ -202,17 +210,53 @@ fn open_location(path: String) -> Result<(), String> {
 fn main() {
     init_logging();
     tauri::Builder::default()
+        .setup(|app| {
+            // 后台自动扫描（每天一次，系统空闲时）
+            let handle = app.handle();
+            std::thread::spawn(move || {
+                let mut sys = System::new_all();
+                loop {
+                    // 读取配置与状态
+                    let cfg = match tauri::async_runtime::block_on(config::read_config()) { Ok(c) => c, Err(_) => { std::thread::sleep(std::time::Duration::from_secs(60)); continue; } };
+                    let st = pipeline_state::load_state(&cfg.index_dir).unwrap_or_default();
+                    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+                    // 若未启用自动扫描，则跳过
+                    if !cfg.auto_scan_enabled { std::thread::sleep(std::time::Duration::from_secs(60)); continue; }
+                    let need_run = (!st.completed) || (st.last_day.as_deref() != Some(&today));
+                    if need_run {
+                        // 判断系统是否空闲（CPU < 20%）
+                        sys.refresh_cpu();
+                        let avg_cpu: f32 = sys.cpus().iter().map(|c| c.cpu_usage()).sum::<f32>() / (sys.cpus().len().max(1) as f32);
+                        if avg_cpu < 20.0 {
+                            let _ = handle.emit_all("auto_scan_start", json!({"reason":"idle_daily"}));
+                            let _ = tauri::async_runtime::spawn(scan_and_index_pipeline_internal(
+                                cfg.scan_roots.clone(),
+                                cfg.exclude_patterns.clone(),
+                                indexer::IndexOptions { index_dir: cfg.index_dir.clone(), enable_content_parse: false },
+                                handle.clone(),
+                            ));
+                        }
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(60));
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             scan_paths,
             scan_paths_progress,
             build_inverted_index,
             build_inverted_index_progress,
+            scan_and_index_pipeline,
+            start_auto_scan_now,
+            diagnostics::diagnostics_report,
             search_query,
             detect_duplicates,
             read_config,
             write_config,
             reset_config,
-            open_location
+            open_location,
+            delete_file_and_index
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -225,12 +269,18 @@ async fn build_inverted_index_progress(
     opts: indexer::IndexOptions,
     window: tauri::Window,
 ) -> Result<(), String> {
-    use tantivy::{schema::*, Index, doc};
+    use tantivy::{schema::*, schema::IndexRecordOption, Index, doc, Term, query::TermQuery, collector::TopDocs};
     use std::{fs, io::Read};
 
     // 构建 schema（与 indexer.rs 保持一致，包含 summary 字段）
     let mut schema_builder = Schema::builder();
-    let f_path = schema_builder.add_text_field("path", TextOptions::default().set_stored());
+    // path 需可索引，支持 delete_term（upsert）
+    let f_path = schema_builder.add_text_field(
+        "path",
+        TextOptions::default()
+            .set_stored()
+            .set_indexing_options(TextFieldIndexing::default()),
+    );
     let f_name = schema_builder.add_text_field(
         "name",
         TextOptions::default()
@@ -248,11 +298,41 @@ async fn build_inverted_index_progress(
     let schema = schema_builder.build();
 
     std::fs::create_dir_all(&opts.index_dir).map_err(|e| e.to_string())?;
-    let index = Index::create_in_dir(&opts.index_dir, schema.clone()).map_err(|e| e.to_string())?;
-    let mut writer = index.writer(50_000_000).map_err(|e| e.to_string())?; // 50MB
+    let index = match Index::open_in_dir(&opts.index_dir) {
+        Ok(idx) => idx,
+        Err(_) => Index::create_in_dir(&opts.index_dir, schema.clone()).map_err(|e| e.to_string())?,
+    };
+    let mut writer: tantivy::IndexWriter<tantivy::TantivyDocument> = index
+        .writer::<tantivy::TantivyDocument>(50_000_000)
+        .map_err(|e| e.to_string())?; // 50MB
 
     let total = files.len();
+    let reader = index.reader().map_err(|e| e.to_string())?;
+    let searcher = reader.searcher();
     for (i, fm) in files.into_iter().enumerate() {
+        // 若存在相同 path 的旧文档，比较时间与大小相同则跳过，否则删除旧文档
+        let term = Term::from_field_text(f_path, &fm.path);
+        let tq = TermQuery::new(term.clone(), IndexRecordOption::Basic);
+        if let Ok(top_docs) = searcher.search(&tq, &TopDocs::with_limit(1)) {
+            if !top_docs.is_empty() {
+                let (_score, addr) = top_docs[0];
+                if let Ok(old_doc) = searcher.doc::<tantivy::TantivyDocument>(addr) {
+                    let old_ts = old_doc.get_first(f_modified).and_then(|v| v.as_i64()).unwrap_or(0);
+                    let old_sz = old_doc.get_first(f_size).and_then(|v| v.as_u64()).unwrap_or(0);
+                    if old_ts == fm.modified_ts && old_sz == fm.size {
+                        let _ = window.emit("index_progress", json!({
+                            "current": i + 1,
+                            "total": total,
+                            "name": fm.file_name,
+                            "path": fm.path,
+                            "skipped": true,
+                        }));
+                        continue;
+                    }
+                }
+                writer.delete_term(term);
+            }
+        }
         let mut doc = doc!(
             f_path => fm.path.clone(),
             f_name => fm.file_name.clone(),
@@ -299,4 +379,36 @@ async fn build_inverted_index_progress(
     writer.commit().map_err(|e| e.to_string())?;
     let _ = window.emit("index_done", json!({"ok": true}));
     Ok(())
+}
+// 删除文件并从索引中移除对应记录
+#[tauri::command]
+async fn delete_file_and_index(path: String, index_dir: String) -> Result<(), String> {
+    info!("delete_file_and_index: path={}, index_dir={}", path, index_dir);
+    // 先尝试删除文件（若失败则返回错误）
+    if let Err(e) = fs::remove_file(&path) {
+        return Err(format!("删除文件失败: {}", e));
+    }
+
+    // 从索引中删除对应文档（若索引不存在则忽略）
+    match Index::open_in_dir(&index_dir) {
+        Ok(index) => {
+            let schema = index.schema();
+            // Tantivy Schema::get_field returns a Result in current version; map error to String
+            let f_path = schema
+                .get_field("path")
+                .map_err(|_| "schema missing field 'path'".to_string())?;
+            let mut writer: tantivy::IndexWriter<tantivy::TantivyDocument> =
+                index.writer::<tantivy::TantivyDocument>(10_000_000)
+                    .map_err(|e| e.to_string())?; // 10MB
+            let term = Term::from_field_text(f_path, &path);
+            writer.delete_term(term);
+            writer.commit().map_err(|e| e.to_string())?;
+            info!("index record deleted for path: {}", path);
+            Ok(())
+        }
+        Err(_) => {
+            warn!("index not found at {}; skipping index deletion", index_dir);
+            Ok(())
+        }
+    }
 }

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tantivy::{schema::*, Index, query::QueryParser, collector::TopDocs};
-use log::{info, debug, warn};
+use log::{info, debug};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchFilters {
