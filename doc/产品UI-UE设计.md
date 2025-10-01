@@ -1,4 +1,4 @@
-# 产品 UI/UE 设计文档（SearchEverywhere）
+# 产品 UI/UE 设计文档（SearchEvery）
 
 ## 1. 设计目标与原则
 - 高效检索：最少操作找到目标文件。

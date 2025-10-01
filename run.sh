@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SearchEverywhere - Dev Run Script (Unix)
+# SearchEvery - Dev Run Script (Unix)
 # 1) Kills lingering processes to avoid file locks
 # 2) Starts Tauri dev (auto-runs `npm run dev` for Vite frontend)
 

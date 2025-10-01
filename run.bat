@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-REM SearchEverywhere - Dev Run Script (Windows)
+REM SearchEvery - Dev Run Script (Windows)
 REM 1) Kills any lingering app processes to avoid Windows file locks
 REM 2) Starts Tauri dev (will auto-run `npm run dev` for Vite frontend)
 

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-REM SearchEverywhere - One-click Build Script (Windows)
+REM SearchEvery - One-click Build Script (Windows)
 REM 1) Kills lingering processes to avoid file locks
 REM 2) Builds the app with Tauri (produces MSI and NSIS installers)
 

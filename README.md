@@ -1,4 +1,4 @@
-# SearchEvery (SearchEverywhere)
+# SearchEvery (SearchEvery)
 
 一个基于 Tauri + Vite + Rust 的跨平台桌面应用，用于高效检索与聚合文件/数据资源。项目同时包含前端（Vite/React）和后端（Rust/Tauri）部分，并提供一键运行和一键打包脚本。
 

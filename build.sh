@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SearchEverywhere - One-click Build Script (Unix)
+# SearchEvery - One-click Build Script (Unix)
 # 1) Kills lingering processes to avoid file locks
 # 2) Builds the app with Tauri (produces installers under src-tauri/target/release/bundle)
 
