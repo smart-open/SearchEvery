@@ -20,6 +20,9 @@ coverage/
 .vscode/
 .idea/
 
+# Project local rules (do not commit)
+.trae/
+
 # OS
 .DS_Store
 Thumbs.db

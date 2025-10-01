@@ -13,6 +13,26 @@
 - 事件与热键：统一事件处理（hooks/useTauriEvents.ts）与搜索热键（hooks/useSearchHotkeys.ts）。
 - 图标：多尺寸 ICO（16/32/48/64/256）已生成并合并到 src-tauri/icons/icon.ico，文本颜色为 #3fa106，圆角加倍。
 
+## 软件截图
+- 示例界面（示例图，仅供占位）：
+
+  ![SearchEvery 示例界面](src/assets/zsm.png)
+
+- 建议将实际截图放在 `public/assets/images/` 目录，并按页面或功能命名，例如：
+  - `public/assets/images/home.png`（首页/主界面）
+  - `public/assets/images/search.png`（搜索结果页）
+  - `public/assets/images/settings.png`（设置页）
+  - `public/assets/images/logs.png`（日志查看/说明）
+
+  将图片添加后，可在此处以 Markdown 形式插入：
+
+  ```md
+  ![首页](/public/assets/images/home.png)
+  ![搜索](/public/assets/images/search.png)
+  ![设置](/public/assets/images/settings.png)
+  ![日志](/public/assets/images/logs.png)
+  ```
+
 ## 目录结构（简要）
 - 前端：src/（React + Vite），dist/（打包产物）
 - 后端：src-tauri/（Rust/Tauri），icons/（应用图标），tauri.conf.json（Tauri 配置）
@@ -75,6 +95,18 @@
 - macOS 与 Linux 的包类型根据系统与配置不同而异（dmg、AppImage、deb、rpm 等）。
 - 若打包失败，请先确认已满足“环境准备”中的所有前置条件。
 
+## 日志输出
+- 日志目录：可执行文件同级的 `logs/` 目录（自动创建）。
+- 命名约定：
+  - 当前运行日志：`SearchEvery.log`
+  - 每日日志：`SearchEvery-yyyy-dd-mm.log`
+- 配置项：
+  - 级别：通过环境变量 `RUST_LOG`（默认 `info`）控制，例如 `RUST_LOG=debug`
+  - 扫描日志采样：`SE_SCAN_LOG_SAMPLE_EVERY`（默认 `100`）
+  - 索引日志采样：`SE_INDEX_LOG_SAMPLE_EVERY`（默认 `200`）
+  
+说明：扫描与索引过程会按设定间隔进行采样输出，避免日志量过大，同时在关键流程节点（开始、结束、分支决策）输出信息级别日志以便定位问题。
+
 ## 配置说明
 - `src-tauri/tauri.conf.json`
   - `productName`: 应用显示名称（当前为 `SearchEvery`）
@@ -90,3 +122,7 @@
 
 ## 许可
 本项目用于原型与产品开发，许可与版权请根据实际需求补充（可选：MIT/Apache-2.0 等）。
+
+## 版本控制
+- 默认分支：`master`
+- 远端仓库：`origin https://github.com/smart-open/SearchEvery.git`
