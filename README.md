@@ -14,10 +14,6 @@
 - 图标：多尺寸 ICO（16/32/48/64/256）已生成并合并到 src-tauri/icons/icon.ico，文本颜色为 #3fa106，圆角加倍。
 
 ## 软件截图
-- 示例界面（示例图，仅供占位）：
-
-  ![SearchEvery 示例界面](src/assets/zsm.png)
-
 - 建议将实际截图放在 `public/assets/images/` 目录，并按页面或功能命名，例如：
   - `public/assets/images/home.png`（首页/主界面）
   - `public/assets/images/search.png`（搜索结果页）
@@ -126,3 +122,8 @@
 ## 版本控制
 - 默认分支：`master`
 - 远端仓库：`origin https://github.com/smart-open/SearchEvery.git`
+
+## 赞赏支持（微信）
+如需支持项目开发，请使用微信赞赏码：
+
+![微信赞赏码](src/assets/zsm.png)
