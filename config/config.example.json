@@ -1,0 +1,18 @@
+{
+  "search_mode": "inverted",
+  "scan_roots": [
+    "D:/"
+  ],
+  "exclude_patterns": [
+    "\\Windows",
+    "\\Program Files",
+    "\\Program Files (x86)",
+    "\\AppData",
+    "\\ProgramData",
+    "\\Temp",
+    "\\$Recycle.Bin",
+    "\\System Volume Information",
+    "\\node_modules"
+  ],
+  "index_dir": "indexes"
+}
