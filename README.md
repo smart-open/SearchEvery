@@ -2,6 +2,8 @@
 
 一个基于 Tauri + Vite + Rust 的跨平台桌面应用，用于高效检索与聚合文件/数据资源。项目同时包含前端（Vite/React）和后端（Rust/Tauri）部分，并提供一键运行和一键打包脚本。
 
+<img width="1745" height="1029" alt="image" src="https://github.com/user-attachments/assets/2bbbec90-efe7-4a09-a7ec-e45d66a7c855" />
+
 ## 产品介绍
 - 目标：提供“随处搜索”的统一入口，整合本地文件与扩展数据源的检索体验。
 - 特点：轻量、原生窗口、支持多平台（Windows、macOS、Linux），安装包体积小、启动速度快。
