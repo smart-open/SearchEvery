@@ -16,9 +16,9 @@ import { highlight } from './utils/highlight'
 import { shortenPath } from './utils/path'
 import useTauriEvents from './hooks/useTauriEvents'
 import { PATH_MAX_LEN } from './constants/ui'
-import useSearchHotkeys from './hooks/useSearchHotkeys'
 import { logError } from './services/logging'
 import useGlobalErrorLogging from './hooks/useGlobalErrorLogging'
+import useFocusDebug from './hooks/useFocusDebug'
 
 export default function App() {
   const inTauri = useMemo(() => isTauri(), [])
@@ -68,11 +68,11 @@ export default function App() {
   const sortTimeRef = useRef<HTMLButtonElement | null>(null)
   const sortSizeRef = useRef<HTMLButtonElement | null>(null)
 
+  // 移除自动焦点行为，避免在用户编辑任意输入框时抢占焦点导致失焦
+  // 保留键盘无障碍的切换行为，用户可通过 Tab/方向键在控件间移动
   useEffect(() => {
-    // 正在编辑搜索框时不抢焦，避免输入期失焦
-    if (document.activeElement === searchInputRef.current) return
+    // 仅在视图模式变更时尝试滚动可视，但不再强制 focus
     const activeBtn = viewMode === 'table' ? tableBtnRef.current : cardBtnRef.current
-    activeBtn?.focus({ preventScroll: true })
     const scrollContainer = viewTabsRef.current
     if (activeBtn && scrollContainer) {
       activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
@@ -80,9 +80,8 @@ export default function App() {
   }, [viewMode])
 
   useEffect(() => {
-    if (document.activeElement === searchInputRef.current) return
+    // 排序变更时仅滚动视图，不强制焦点
     const activeBtn = sortBy === 'score' ? sortScoreRef.current : (sortBy === 'time' ? sortTimeRef.current : sortSizeRef.current)
-    activeBtn?.focus({ preventScroll: true })
     const scrollContainer = sortTabsRef.current
     if (activeBtn && scrollContainer) {
       activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
@@ -154,8 +153,10 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
-  // 全局快捷键抽离为 Hook
-  useSearchHotkeys(setPage, searchInputRef)
+  // 全局快捷键已完全移除
+
+  // 临时：焦点调试，协助定位输入失焦来源（完成验证后可移除）
+  const { lastFocus } = useFocusDebug(true)
 
   // 输入即搜（250ms 防抖）
   useEffect(() => {
@@ -396,6 +397,12 @@ export default function App() {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') doSearch() }}
+                  onBlur={(e) => {
+                    // 临时调试：记录输入框失焦时的下一个焦点元素
+                    const t = (e.relatedTarget as HTMLElement | null)
+                    // eslint-disable-next-line no-console
+                    console.log('[search-input:blur] next=', t)
+                  }}
                   placeholder="搜索您的一切"
                   style={{ width: '100%', padding: '10px 14px 10px 36px', height: 40, border: '1px solid var(--border)', borderRadius: 10, background: 'transparent', color: 'var(--text)' }}
                 />
@@ -406,6 +413,7 @@ export default function App() {
           {/* 顶部筛选行已下移至内容区，与表格左对齐 */}
          
           <div className="status">{msg}</div>
+          <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>焦点：{lastFocus || '未知'}</div>
         </div>
         <div className="panel-body">
           {/* 模式与筛选行占整行，置于内容区顶部，保证下方左右列垂直对齐 */}
@@ -879,10 +887,10 @@ export default function App() {
 
   function renderContent() {
     switch (page) {
-      case 'search': return <SearchPage />
-      case 'index': return <IndexPage />
-      case 'dup': return <DupPage />
-      case 'settings': return <SettingsPage />
+      case 'search': return SearchPage()
+      case 'index': return IndexPage()
+      case 'dup': return DupPage()
+      case 'settings': return SettingsPage()
       case 'about': return <AboutPage />
     }
   }

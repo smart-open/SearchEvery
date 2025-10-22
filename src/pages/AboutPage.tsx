@@ -1,3 +1,4 @@
+// @ts-ignore
 import zsm from '../assets/zsm.png'
 
 export default function AboutPage() {
@@ -12,7 +13,6 @@ export default function AboutPage() {
           <li>产品名：SearchEvery</li>
           <li>版本：预览版</li>
           <li>技术栈：React + Vite 前端，Tauri + Rust 后端，Tantivy 搜索引擎</li>
-          <li>快捷键：Ctrl/Cmd+K 聚焦搜索框</li>
         </ul>
         <div style={{ marginTop: 12 }}>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>产品简介</div>

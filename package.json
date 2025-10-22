@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "icons:generate": "node scripts/generate-icons.mjs",
+    "icons:from256": "node scripts/resize-ico-from-256.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -20,6 +21,7 @@
     "@types/react": "^18.2.62",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.3.1",
+    "icojs": "^0.19.5",
     "png-to-ico": "^2.1.8",
     "sharp": "^0.33.4",
     "typescript": "^5.5.4",
